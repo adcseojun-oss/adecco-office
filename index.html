@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>아데코 오피스</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="아데코 오피스">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0F1115">
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0F1115;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;text-align:center}
+  .box{padding:28px;max-width:360px}
+  .logo{width:84px;height:84px;border-radius:20px;background:#E2001A;color:#fff;font-size:56px;font-weight:900;line-height:84px;margin:0 auto 18px}
+  h1{font-size:22px;margin:0 0 10px}
+  p{font-size:15px;line-height:1.6;opacity:.9;margin:0 0 18px}
+  button,a.btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;background:#3fa58c;color:#fff;text-decoration:none;margin-top:10px}
+  a.sub{display:block;margin-top:16px;color:#cfd3da;font-size:14px}
+  .steps{text-align:left;background:rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">A</div>
+  <h1>아데코 오피스</h1>
+  <div id="v"></div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script>
+var HUB = 'https://script.google.com/a/macros/woowafriends.com/s/AKfycbxEDRDssoaI2kmjL9pVZvXPneDkvYVRsxWi2rE_PTAmxWALK4qca38R9fx68IXC6xo5/exec';
+var CFG = {"apiKey":"AIzaSyBNjQw9gob2FjqVU4EOo9m_h_55pq3pjH8","authDomain":"adecco-office.firebaseapp.com","projectId":"adecco-office","storageBucket":"adecco-office.firebasestorage.app","messagingSenderId":"272372512860","appId":"1:272372512860:web:4ecc1187d81276ed78ce99"};
+var VAPID = 'BBIDyDQ4gqmL0efYVIelxHc44PzqyQu-S-7RjwiV3sBJEHh8vFnkFpp0AHWlFum-ClvsCzvkVvpIACPpxNyvuuA';
+var v = document.getElementById('v');
+var standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+function ls(k, val) { try { if (val === undefined) return localStorage.getItem(k); localStorage.setItem(k, val); } catch (e) { return null; } }
+
+if (!standalone) {
+  v.innerHTML = '<p>아이폰에서 알림을 받으려면 먼저 홈 화면에 추가해 주세요.</p>' +
+    '<div class="steps">1. 사파리 아래쪽 <b>공유 버튼(⬆️)</b> 누르기<br>2. <b>홈 화면에 추가</b> 누르기<br>3. 홈 화면의 <b>아데코 오피스</b> 아이콘으로 열기</div>' +
+    '<a class="sub" href="' + HUB + '">알림 없이 허브만 열기 →</a>';
+} else if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+  v.innerHTML = '<p>이 기기는 알림을 지원하지 않아요.<br>iOS 16.4 이상으로 업데이트해 주세요.</p><a class="btn" href="' + HUB + '">허브 열기</a>';
+} else if (Notification.permission === 'granted' && ls('sent')) {
+  location.replace(HUB);
+} else {
+  v.innerHTML = '<p>버튼을 누르고 <b>허용</b>을 선택하면<br>허브 알림이 휴대폰으로 와요.</p><button id="b">🔔 알림 켜고 시작하기</button><a class="sub" href="' + HUB + '">나중에 하기</a>';
+  document.getElementById('b').onclick = start;
+}
+
+function start() {
+  var b = document.getElementById('b'); b.disabled = true; b.textContent = '설정 중…';
+  Notification.requestPermission().then(function (perm) {
+    if (perm !== 'granted') throw new Error('알림이 허용되지 않았어요. 설정 → 알림 → 아데코 오피스에서 허용해 주세요.');
+    return navigator.serviceWorker.register('firebase-messaging-sw.js');
+  }).then(function (reg) {
+    firebase.initializeApp(CFG);
+    return firebase.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg });
+  }).then(function (tok) {
+    if (!tok) throw new Error('알림 등록에 실패했어요. 다시 시도해 주세요.');
+    ls('sent', '1');
+    location.replace(HUB + '?wfcm=' + encodeURIComponent(tok));
+  }).catch(function (e) {
+    b.disabled = false; b.textContent = '🔔 다시 시도';
+    alert(e.message || e);
+  });
+}
+</script>
+</body>
+</html>
