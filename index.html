@@ -89,6 +89,8 @@ function startHub(extra) {
       if (sf) { sf.remove(); sf = null; }
     } else if (d.t === 'adecco-snap' && typeof d.html === 'string' && d.html.length < 1500000) {
       try { localStorage.setItem('adecco-snap', d.html); } catch (err) {}
+    } else if (d.t === 'adecco-back') {
+      try { history.back(); } catch (err) {}
     } else if (d.t === 'adecco-reload') {
       l.classList.remove('off');
       f.src = HUB + '?app=1' + (typeof d.h === 'string' && d.h ? '#' + d.h : '');

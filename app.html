@@ -86,6 +86,8 @@
       ld.classList.add('off'); help.style.display = 'none'; hideSnap();
     } else if (d.t === 'adecco-snap' && typeof d.html === 'string' && d.html.length < 1500000) {
       lsSet('adecco-snap', d.html);
+    } else if (d.t === 'adecco-back') {
+      try { history.back(); } catch (err) {}
     } else if (d.t === 'adecco-reload') {
       load(hubUrl(typeof d.h === 'string' ? d.h : ''));
     }
