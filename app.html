@@ -13,6 +13,10 @@
   .logo{width:72px;height:72px;border-radius:18px;background:#E2001A;color:#fff;font-size:48px;font-weight:900;line-height:72px;text-align:center;font-family:Roboto,Arial,sans-serif}
   .dots{display:flex;gap:6px}.dots i{width:7px;height:7px;border-radius:50%;background:#2aa597;animation:b 1s infinite}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
   @keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  #snap{position:fixed;top:0;left:0;width:100%;height:100%;border:0;display:block;z-index:1;pointer-events:none;background:#0f1115}
+  #pill{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:4;display:none;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#171a21;color:#c4c8d0;border:1px solid #2b303b;box-shadow:0 6px 18px rgba(0,0,0,.4);font:600 13px -apple-system,Roboto,"Noto Sans KR",sans-serif;white-space:nowrap}
+  #pill i{width:14px;height:14px;box-sizing:border-box;border:2px solid #414858;border-top-color:#2aa597;border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
   #help{position:fixed;left:16px;right:16px;bottom:24px;display:none;z-index:3;background:#1d2129;color:#e7e9ee;border:1px solid #2b303b;border-radius:16px;padding:16px;font:14px/1.6 -apple-system,Roboto,"Noto Sans KR",sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.4)}
   #help b{display:block;font-size:15px;margin-bottom:4px}
   #help a{display:block;margin-top:10px;text-align:center;background:#2aa597;color:#fff;border-radius:10px;padding:12px;text-decoration:none;font-weight:700}
@@ -22,6 +26,7 @@
 <body>
 <div id="ld"><div class="logo">A</div><div class="dots"><i></i><i></i><i></i></div></div>
 <iframe id="f" title="아데코 오피스" allow="clipboard-read; clipboard-write; fullscreen; geolocation; camera; microphone"></iframe>
+<div id="pill"><i></i>불러오는 중…</div>
 <div id="help">
   <b>화면이 열리지 않나요?</b>
   회사 구글 계정 로그인이 풀린 상태일 수 있어요. 아래 버튼으로 로그인한 뒤 앱을 닫고 다시 열어 주세요.
@@ -33,14 +38,32 @@
   var HUB = 'https://script.google.com/a/macros/woowafriends.com/s/AKfycbxEDRDssoaI2kmjL9pVZvXPneDkvYVRsxWi2rE_PTAmxWALK4qca38R9fx68IXC6xo5/exec';
   var f = document.getElementById('f'), ld = document.getElementById('ld'), help = document.getElementById('help');
   var q = new URLSearchParams(location.search);
-  var ready = false, timer = null;
+  var ready = false, timer = null, sf = null;
+  var pill = document.getElementById('pill');
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  // 지난번 홈 화면 사진을 먼저 보여주고, 실제 허브가 준비되면 바꿔 끼움
+  function showSnap() {
+    var s = lsGet('adecco-snap');
+    if (!s) return false;
+    sf = document.createElement('iframe');
+    sf.id = 'snap'; sf.setAttribute('sandbox', ''); sf.setAttribute('aria-hidden', 'true');
+    sf.srcdoc = s;
+    document.body.insertBefore(sf, f.nextSibling);
+    ld.classList.add('off'); pill.style.display = 'flex';
+    return true;
+  }
+  function hideSnap() {
+    if (sf) { sf.remove(); sf = null; }
+    pill.style.display = 'none';
+  }
 
   function hubUrl(hash, extra) {
     return HUB + '?app=1' + (extra || '') + (hash ? '#' + hash : '');
   }
   function load(src) {
     ready = false;
-    ld.classList.remove('off');
+    if (!sf) ld.classList.remove('off');
     help.style.display = 'none';
     f.src = src;
     clearTimeout(timer);
@@ -48,6 +71,7 @@
   }
 
   var fcm = q.get('fcm'), go = q.get('go') || '';
+  if (!go) showSnap();
   load(hubUrl(go, fcm ? '&fcm=' + encodeURIComponent(fcm) : ''));
   // 주소창에 남은 등록 정보는 지움 (다시 열 때 중복 등록 방지)
   try { if (fcm || go) history.replaceState(null, '', location.pathname); } catch (e) {}
@@ -59,7 +83,9 @@
     var d = e.data || {};
     if (d.t === 'adecco-ready') {
       ready = true; clearTimeout(timer);
-      ld.classList.add('off'); help.style.display = 'none';
+      ld.classList.add('off'); help.style.display = 'none'; hideSnap();
+    } else if (d.t === 'adecco-snap' && typeof d.html === 'string' && d.html.length < 1500000) {
+      lsSet('adecco-snap', d.html);
     } else if (d.t === 'adecco-reload') {
       load(hubUrl(typeof d.h === 'string' ? d.h : ''));
     }
